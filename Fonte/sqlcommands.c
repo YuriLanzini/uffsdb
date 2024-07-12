@@ -1147,7 +1147,7 @@ void createTable(rc_insert *t) {
   	}
   	printf("CREATE TABLE\n");
   } else { //Tabela já existe, então não é preciso criar o índice b+.
-	  printf("ERROR: table already exist\n");
+       printf("ERROR: table already exist\n");
   }
 
   free(tableName);

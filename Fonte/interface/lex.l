@@ -62,22 +62,7 @@ help							return HELP;
 ([%]|[/])       {yylval.strval = yytext; return OPERADOR;}
 
 ([>][=]|[<][=]|[=]|[!][=]|[>]|[<]) {yylval.strval = yytext; return RELACIONAL;};
-
-\n								{
-									if (GLOBAL_PARSER.mode != 0) {
-										if (GLOBAL_PARSER.parentesis)
-											printf("%s(# ", connected.db_name);
-										else
-											printf("%s-# ", connected.db_name);
-									} else if (connected.conn_active) {
-								 		if (GLOBAL_PARSER.consoleFlag)
-							                GLOBAL_PARSER.consoleFlag = 0;
-							            else
-							                printf("%s=# ", connected.db_name);
-									} else
-								 		printf(">");
-								};
-
+						
 [\\][c]							return CONNECT;
 [\\][c]+[^ ^\n]*		{invalidCommand(yytext);};
 [\\][c]+[ ]*[\n]		{invalidCommand("\\c <enter>'. Expecting '\\c DBNAME"); return 0;};
