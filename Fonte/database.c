@@ -194,3 +194,34 @@ void dbInit(char *db) {
 
 	createDB(name);
 }
+
+
+void backupDB(char *db_name) {
+    char backup_command[LEN_DB_NAME_IO * 2 + 15];
+
+    if (connectDB(db_name) != 0) {
+        printf("ERROR: Database '%s' not found or could not connect.\n", db_name);
+        return;
+    }
+
+    snprintf(backup_command, sizeof(backup_command), "cp -r %s %s_backup", connected.db_directory, db_name);
+
+    if (system(backup_command) == -1) {
+        printf("ERROR: Failed to backup database '%s'.\n", db_name);
+    }
+}
+
+void restoreDB(char *db_name) {
+    char restore_command[LEN_DB_NAME_IO * 2 + 25];
+
+    if (connectDB(db_name) != 0) {
+        printf("ERROR: Database '%s' not found or could not connect.\n", db_name);
+        return;
+    }
+
+    snprintf(restore_command, sizeof(restore_command), "rm -rf %s; mv %s_backup %s", connected.db_directory, db_name, connected.db_directory);
+
+    if (system(restore_command) == -1) {
+        printf("ERROR: Failed to restore database '%s' from backup.\n", db_name);
+    }
+}

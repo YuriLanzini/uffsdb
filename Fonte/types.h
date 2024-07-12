@@ -71,7 +71,8 @@ typedef struct rc_parser {
     int         noerror;        // Nenhum erro encontrado na identificação dos tokens
     int         col_count;      // Contador de colunas
     int         val_count;      // Contador de valores
-    int         consoleFlag;   // Auxiliar para não imprimir duas vezes nome=#
+    int         consoleFlag;    // Auxiliar para não imprimir duas vezes nome=#
+    int         transFlag;      // Indicar se uma transação foi iniciada 
 }rc_parser;
 
 typedef struct data_base{

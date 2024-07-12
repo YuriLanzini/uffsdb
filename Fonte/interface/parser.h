@@ -126,3 +126,18 @@ void clearGlobalStructs();
  * dos tokens iniciais.
  */
 void setMode(char mode);
+
+/* Inicia uma transação e faz o backup do BD que o usuário
+ * está conectado.
+ */
+void initTransaction();
+
+/* Realiza o commit, excluindo o backup feito na função initTransaction(), ou seja, 
+ * mantém os dados alterados após o begin.
+ */
+void commitTransaction();
+
+/* Realiza o rollback, utilzando o backup feito na função initTransaction(), ou seja, 
+ * o BD volta para o estado anterior ao begin.
+ */
+void rollbackTransaction();

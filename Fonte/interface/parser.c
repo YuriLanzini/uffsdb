@@ -39,6 +39,13 @@ inf_select SELECT;
 rc_parser GLOBAL_PARSER;
 
 void connect(char *nome) {
+    if (GLOBAL_PARSER.transFlag == 1) {
+
+        printf("ERROR: Not possible to access another bank during a transaction.\n");
+        rollbackTransaction();
+        return;
+    }               
+                            
   int r = connectDB(nome);
 	if (r == SUCCESS) {
     connected.db_name = malloc(sizeof(char)*((strlen(nome)+1)));
@@ -256,6 +263,45 @@ void setMode(char mode) {
     GLOBAL_PARSER.step++;
 }
 
+void initTransaction() {
+    if(GLOBAL_PARSER.transFlag){
+        printf("WARNING: there is already a transaction in progress.\n");
+        printf("BEGIN\n");
+
+    }else
+    {
+    GLOBAL_PARSER.transFlag = 1;
+    printf("BEGIN\n");
+    backupDB(connected.db_name);
+    }
+}
+
+void commitTransaction() {
+    if (GLOBAL_PARSER.transFlag == 1) {
+        char remove_backup_command[LEN_DB_NAME_IO * 2 + 20];
+        snprintf(remove_backup_command, sizeof(remove_backup_command), "rm -r %s_backup", connected.db_name);
+        system(remove_backup_command);
+          
+        GLOBAL_PARSER.transFlag =0;
+        printf("COMMIT\n");
+
+    } else {
+        printf("WARNING: No transactions being executed. Command ignored.\n");
+    }
+}
+
+void rollbackTransaction() {
+    if (GLOBAL_PARSER.transFlag == 1) {
+        restoreDB(connected.db_name);
+
+        GLOBAL_PARSER.transFlag =0;
+        printf("ROLLBACK\n");
+
+    } else {
+        printf("WARNING: No transactions being executed. Command ignored.\n");
+    }
+}
+
 int interface() {
     pthread_t pth;
 
@@ -264,11 +310,17 @@ int interface() {
     Lista *resultado;
     connect("uffsdb"); // conecta automaticamente no banco padrão
     SELECT.tok = SELECT.proj = NULL;
+    GLOBAL_PARSER.transFlag = 0;
     while(1){
         if (!connected.conn_active) {
             printf(">");
         } else {
+            if(!GLOBAL_PARSER.transFlag)
             printf("%s=# ", connected.db_name);
+            if(GLOBAL_PARSER.transFlag){
+            
+				printf("%s=*# ", connected.db_name);
+			}
         }
 
         pthread_create(&pth, NULL, (void*)yyparse, &GLOBAL_PARSER);
@@ -286,6 +338,7 @@ int interface() {
                             }
                             else
                                 printf("WARNING: Nothing to be inserted. Command ignored.\n");
+                                          
                             break;
                         case OP_SELECT:
                             resultado = op_select(&SELECT);
@@ -297,13 +350,25 @@ int interface() {
                         case OP_CREATE_TABLE:
                             createTable(&GLOBAL_DATA);
                             break;
-                        case OP_CREATE_DATABASE:
+                        case OP_CREATE_DATABASE:       
+                            if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                                printf("ERROR: CREATE DATABASE cannot run inside a transaction block.\n");
+                                rollbackTransaction();
+                                break;
+                            } 
                             createDB(GLOBAL_DATA.objName);
                             break;
                         case OP_DROP_TABLE:
                             excluirTabela(GLOBAL_DATA.objName);
                             break;
                         case OP_DROP_DATABASE:
+                            if (GLOBAL_PARSER.transFlag == 1) {
+                        
+                                printf("ERROR: DROP DATABASE cannot run inside a transaction block.\n");
+                                rollbackTransaction();
+                                break;
+                                } 
                             dropDatabase(GLOBAL_DATA.objName);
                             break;
                         case OP_CREATE_INDEX:
@@ -344,8 +409,14 @@ int interface() {
                     GLOBAL_PARSER.consoleFlag = 0;
                 }
             }
-
+            
             printf("ERROR: syntax error.\n");
+            
+            if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+                }
+            
             GLOBAL_PARSER.noerror = 1;
         }
 

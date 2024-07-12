@@ -28,8 +28,8 @@
 (?i:ON)						    return ON;
 (?i:INDEX)						return INDEX;
 (?i:INTEGER)					return INTEGER;
-(?i:AND)					return LOGICO;
-(?i:OR)					return LOGICO;
+(?i:AND)						return LOGICO;
+(?i:OR)							return LOGICO;
 (?i:INT)						return INTEGER;
 (?i:VARCHAR)					return VARCHAR;
 (?i:CHAR)						return CHAR;
@@ -45,6 +45,10 @@ help							return HELP;
 [\\][h]+[^\n]*					{invalidCommand(yytext);};
 [\\][\?]						return HELP;
 (?i:CLEAR)						return CLEAR;
+(?i:BEGIN)     					return BEGINn;
+(?i:END)     					return END;
+(?i:COMMIT)     				return COMMIT;
+(?i:ROLLBACK)   				return ROLLBACK;
 
 [,]								return *yytext;
 [;]								return *yytext;
@@ -64,7 +68,8 @@ help							return HELP;
 ([>][=]|[<][=]|[=]|[!][=]|[>]|[<]) {yylval.strval = yytext; return RELACIONAL;};
 
 \n								{
-									if (GLOBAL_PARSER.mode != 0) {
+									if (GLOBAL_PARSER.mode != 0 && GLOBAL_PARSER.transFlag == 0) {
+											
 										if (GLOBAL_PARSER.parentesis)
 											printf("%s(# ", connected.db_name);
 										else
@@ -72,18 +77,21 @@ help							return HELP;
 									} else if (connected.conn_active) {
 								 		if (GLOBAL_PARSER.consoleFlag)
 							                GLOBAL_PARSER.consoleFlag = 0;
-							            else
-							                printf("%s=# ", connected.db_name);
+							            else if(GLOBAL_PARSER.transFlag)
+											printf("%s=*# ", connected.db_name);
+											else
+												printf("%s=# ", connected.db_name);
+							                
 									} else
 								 		printf(">");
 								};
-
+								
 [\\][c]							return CONNECT;
 [\\][c]+[^ ^\n]*		{invalidCommand(yytext);};
 [\\][c]+[ ]*[\n]		{invalidCommand("\\c <enter>'. Expecting '\\c DBNAME"); return 0;};
 [\\][l]							return LIST_DBASES;
 [\\][l]+[^\n]*			{invalidCommand(yytext);};
-[\\][q]							return QUIT;
+[\\][q]							{if (GLOBAL_PARSER.transFlag){rollbackTransaction();}}return QUIT;
 [\\][q]+[^\n]*			{invalidCommand(yytext);};
 [\\][d]+						return LIST_TABLES;
 [\\][d]+[^\n]*			{invalidCommand(yytext);};

@@ -29,6 +29,10 @@
 #ifndef FEXPRESSAO
   #include "Expressao.h"
 #endif
+
+#ifndef FPARSER
+   #include "interface/parser.h"
+#endif
 /* ----------------------------------------------------------------------------------------------
     Objetivo:   Recebe o nome de uma tabela e engloba as funções leObjeto() e leSchema().
     Parametros: Nome da Tabela, Objeto da Tabela e tabela.
@@ -551,7 +555,12 @@ void insert(rc_insert *s_insert) {
 				}
         else {
 					printf("ERROR: data type invalid to column '%s' of relation '%s' (expected: %c, received: %c).\n", esquema->nome, tabela->nome, esquema->tipo, getInsertedType(s_insert, esquema->nome, tabela));
-					flag=1;
+					 if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+              
+                }
+          flag=1;
 				}
 			}
 		}
@@ -576,13 +585,23 @@ void insert(rc_insert *s_insert) {
 					colunas = insereValor(tabela, colunas, tabela->esquema[i].nome, s_insert->values[i]);
 				else {
 					printf("ERROR: data type invalid to column '%s' of relation '%s' (expected: %c, received: %c).\n", tabela->esquema[i].nome, tabela->nome, tabela->esquema[i].tipo, s_insert->type[i]);
-					flag=1;
+					 if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+              
+                }
+          flag=1;
 				}
 			}
 		}
     else {
       printf("ERROR: INSERT has more expressions than target columns.\n");
-		  flag = 1;
+		   if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+              
+                }
+      flag = 1;
 		}
 	}
 
@@ -760,6 +779,11 @@ Lista *op_select(inf_select *select) {
   struct fs_objects objeto;
   if(!verificaNomeTabela(select->tabela)){
     printf("\nERROR: relation \"%s\" was not found.\n\n\n", select->tabela);
+     if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+              
+                }
     return NULL;
   }
   objeto = leObjeto(select->tabela);
@@ -767,6 +791,11 @@ Lista *op_select(inf_select *select) {
   if(esquema == ERRO_ABRIR_ESQUEMA){
     printf("ERROR: schema cannot be created.\n");
     free(esquema);
+     if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+              
+                }
     return NULL;
   }
   bufferpoll = initbuffer();
@@ -774,6 +803,11 @@ Lista *op_select(inf_select *select) {
     free(bufferpoll);
     free(esquema);
     printf("ERROR: no memory available to allocate buffer.\n");
+     if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+              
+                }
     return NULL;
   }
   int erro = SUCCESS,x;
@@ -810,6 +844,11 @@ Lista *op_select(inf_select *select) {
       printf("ERROR: could not open the table.\n");
       free(bufferpoll);
       free(esquema);
+      if (GLOBAL_PARSER.transFlag == 1) {
+                    
+           rollbackTransaction();
+              
+        }
       return NULL;
     }
     for(k = j = i = 0; !abortar && k < bufferpoll[p].nrec; k++){
@@ -959,6 +998,10 @@ int excluirTabela(char *nomeTabela) {
 
     if (!verificaNomeTabela(nomeTabela)) {
         printf("ERROR: table \"%s\" does not exist.\n", nomeTabela);
+           if (GLOBAL_PARSER.transFlag == 1) {
+                    
+              rollbackTransaction();
+            }               
         return ERRO_NOME_TABELA;
     }
 
@@ -1009,6 +1052,10 @@ int excluirTabela(char *nomeTabela) {
                         if(tab3[l].chave == FK) { //verifica se a outra tabela possui chave estrangeira. se sim, verifica se e da tabela anterior.
                             if(objcmp(nomeTabela, tab3[l].tabelaApt) == 0) {
                                 printf("ERROR: cannot drop table \"%s\" because other objects depend on it.\n", nomeTabela);
+                                   if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                                      rollbackTransaction();
+                                    }  
                                 return ERRO_CHAVE_ESTRANGEIRA;
                             }
                         }
@@ -1037,6 +1084,10 @@ int excluirTabela(char *nomeTabela) {
     tp_buffer *bufferpoll = initbuffer();
     if(bufferpoll == ERRO_DE_ALOCACAO){
         printf("ERROR: no memory available to allocate buffer.\n");
+        if (GLOBAL_PARSER.transFlag == 1) {
+                    
+          rollbackTransaction();
+         }  
         return ERRO_LEITURA_DADOS;
     }
 
@@ -1081,6 +1132,11 @@ int verifyFieldName(char **fieldName, int N){
 void createTable(rc_insert *t) {
   if(strlen(t->objName) > TAMANHO_NOME_TABELA){
       printf("A table name must have no more than %d caracteres.\n",TAMANHO_NOME_TABELA);
+        if (GLOBAL_PARSER.transFlag == 1) {
+                    
+          rollbackTransaction();
+              
+     }
       return;
   }
   int size;
@@ -1093,6 +1149,11 @@ void createTable(rc_insert *t) {
   if(existeArquivo(tableName)){
     printf("ERROR: table already exist\n");
     free(tableName);
+     if (GLOBAL_PARSER.transFlag == 1) {
+                    
+          rollbackTransaction();
+              
+     }
     return;
   }
 
@@ -1127,6 +1188,11 @@ void createTable(rc_insert *t) {
   		  printf("ERROR: attribute FK cannot be referenced\n");
         free(tableName);
         freeTable(tab);
+         if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+              
+                }
         return;
       }
     }
@@ -1148,6 +1214,11 @@ void createTable(rc_insert *t) {
   	printf("CREATE TABLE\n");
   } else { //Tabela já existe, então não é preciso criar o índice b+.
 	  printf("ERROR: table already exist\n");
+     if (GLOBAL_PARSER.transFlag == 1) {
+                    
+                    rollbackTransaction();
+              
+                }
   }
 
   free(tableName);

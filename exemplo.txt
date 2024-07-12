@@ -106,3 +106,15 @@
 
 # Para sair do shell do SGBD Ibetres, digite:
 	\q
+
+# Para iniciar uma transação, digite:
+	BEGIN;
+
+# Para encerrar uma transação (será realizado um commit implicitamente), digite: 
+	END;
+
+# Para realizar um commit, digite:
+	COMMIT;
+	
+# Para realizar um rollback, digite:
+	ROLLBACK;
